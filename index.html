@@ -31,6 +31,7 @@
         #viewer {
             width: 50%;
             height: 100%;
+            position: relative;
         }
         #map-container {
             width: 50%;
@@ -187,7 +188,7 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 14px;
             font-weight: 500;
             transition: background 0.2s;
         }
@@ -197,13 +198,6 @@
         }
         #reload-btn:hover {
             background: #3367D6;
-        }
-        #mapillary-btn {
-            background: #34A853;
-            color: white;
-        }
-        #mapillary-btn:hover {
-            background: #2D9348;
         }
         #mapillary-direct-btn {
             position: absolute;
@@ -270,7 +264,7 @@
     <div id="error-container">
         <h3>⚠️ Loading Error</h3>
         <p id="error-message">Mapillary API issue occurred during imagery fetch. Would you like to try reloading?</p>
-        <p id="error-message"><i>You can also open filtered Mapillary data by using th button in the bottom left of the screen.<i></i></p>
+        <p><i>You can also open filtered Mapillary data by using the button in the bottom left of the screen.</i></p>
         <div>
             <button id="reload-btn">Try Reload</button>
         </div>
@@ -281,7 +275,7 @@
         const START_ID = '1347465910083369';
         const USERNAME = 'vukmercd23';
         const START_DATE = '2025-10-01T00:00:00Z';
-        const END_DATE = '2025-10-16T00:00:00Z'; // Exclusive, so 10/15 23:59:59 is included
+        const END_DATE = '2025-10-16T00:00:00Z';
         
         let imageData = [];
         let isUpdatingFromViewer = false;
@@ -339,18 +333,16 @@
             }
         }
         
-        // Error dialog button handlers
+        // Button handlers
         document.getElementById('reload-btn').addEventListener('click', () => {
             hideError();
             location.reload();
         });
         
-        // ArcGIS open button
         document.getElementById('open-arcgis-btn').addEventListener('click', () => {
             window.open('https://timmons-group.maps.arcgis.com/apps/mapviewer/index.html?webmap=0de90d7988f9470da59918c9b00c5379', '_blank');
         });
         
-        // Mapillary direct button (always visible)
         document.getElementById('mapillary-direct-btn').addEventListener('click', () => {
             window.open('https://www.mapillary.com/app/user/vukmercd23?lat=30.138492112426093&lng=-91.95221806850299&z=12.85546044226375&dateFrom=2025-10-01&username%5B%5D=vukmercd23&dateTo=2025-10-15&pKey=1347465910083369', '_blank');
         });
@@ -389,7 +381,7 @@
             zoom: 2
         });
 
-        // Fetch ALL user images with date filter
+        // Fetch images
         async function fetchAllUserImages() {
             try {
                 status('Loading all images...');
@@ -401,24 +393,21 @@
                 let totalFetched = 0;
                 const startTime = Date.parse(START_DATE);
                 const endTime = Date.parse(END_DATE);
-                const estimatedTotal = 30; // Rough estimate for progress bar
+                const estimatedTotal = 30;
                 
-                // Fetch all pages
                 while (true) {
                     const url = new URL('https://graph.mapillary.com/images');
                     url.searchParams.set('access_token', TOKEN);
                     url.searchParams.set('fields', 'id,geometry,compass_angle,sequence,captured_at');
                     url.searchParams.set('creator_username', USERNAME);
                     url.searchParams.set('limit', 2000);
-                    if (after) {
-                        url.searchParams.set('after', after);
-                    }
+                    if (after) url.searchParams.set('after', after);
                     
                     const response = await fetch(url);
                     if (!response.ok) {
                         const errorText = await response.text();
                         console.error(`HTTP ${response.status}: ${errorText}`);
-                        showError(`API Error (${response.status}): Failed to load imagery data. Would you like to try reloading?`);
+                        showError(`API Error (${response.status}): Failed to load imagery data.`);
                         throw new Error(`HTTP ${response.status}`);
                     }
                     
@@ -427,99 +416,42 @@
                     
                     requestCount++;
                     totalFetched += images.length;
-                    console.log(`Request ${requestCount}: got ${images.length} images (total fetched: ${totalFetched})`);
                     
                     if (images.length === 0) break;
                     
-                    // Debug: log first few dates
-                    if (requestCount === 1) {
-                        console.log('Sample dates from first request:');
-                        images.slice(0, 5).forEach(img => {
-                            console.log(`  ${img.id}: ${img.captured_at} (type: ${typeof img.captured_at})`);
-                        });
-                        console.log(`Looking for dates between ${START_DATE} and ${END_DATE}`);
-                        console.log(`Start timestamp: ${startTime}, End timestamp: ${endTime}`);
-                    }
-                    
-                    // Filter by date in JavaScript
                     const filtered = images.filter(img => {
                         if (!img.captured_at) return false;
-                        // captured_at might be a Unix timestamp (number) or ISO string
-                        let capturedTime;
-                        if (typeof img.captured_at === 'number') {
-                            capturedTime = img.captured_at;
-                        } else {
-                            capturedTime = Date.parse(img.captured_at);
-                        }
+                        let capturedTime = typeof img.captured_at === 'number' ? 
+                            img.captured_at : Date.parse(img.captured_at);
                         return capturedTime >= startTime && capturedTime < endTime;
                     });
                     
-                    console.log(`  Filtered to ${filtered.length} images in date range`);
-                    
-                    // Debug: show why images are being filtered out
-                    if (filtered.length === 0 && images.length > 0 && requestCount === 1) {
-                        console.log('First image dates analysis:');
-                        images.slice(0, 3).forEach(img => {
-                            let capturedTime;
-                            if (typeof img.captured_at === 'number') {
-                                capturedTime = img.captured_at;
-                            } else {
-                                capturedTime = Date.parse(img.captured_at);
-                            }
-                            const date = new Date(capturedTime);
-                            const inRange = capturedTime >= startTime && capturedTime < endTime;
-                            console.log(`  ${img.captured_at} -> ${date.toISOString()} -> ${inRange ? 'IN' : 'OUT'}`);
-                            console.log(`    Captured: ${capturedTime}, Start: ${startTime}, End: ${endTime}`);
-                        });
-                    }
-                    
                     allImages = allImages.concat(filtered);
                     updateProgress(requestCount, estimatedTotal, allImages.length);
-                    status(`Loading: ${allImages.length} images match filtering criteria...`);
                     
-                    // Check if there's more data
-                    if (data.paging && data.paging.cursors && data.paging.cursors.after) {
+                    if (data.paging?.cursors?.after) {
                         after = data.paging.cursors.after;
                     } else {
-                        console.log('No more pages available');
                         break;
                     }
                     
-                    // Safety limit to prevent infinite loops
-                    if (requestCount >= 50) {
-                        console.log('Reached maximum request limit');
-                        break;
-                    }
-                    
-                    // Stop if we've collected enough images
-                    if (allImages.length >= 59477) {
-                        console.log('Reached maximum of 59,477 images');
-                        allImages = allImages.slice(0, 59477);
-                        break;
-                    }
+                    if (requestCount >= 50 || allImages.length >= 59477) break;
                 }
                 
                 showProgress(false);
-                console.log(`\n=== FINAL RESULTS ===`);
-                console.log(`Total API requests: ${requestCount}`);
-                console.log(`Total images fetched from API: ${totalFetched}`);
-                console.log(`Total images matching date filter (Oct 1-15, 2025): ${allImages.length}`);
-                console.log(`===================\n`);
-                
                 imageData = allImages;
                 
                 if (imageData.length === 0) {
-                    status('No Timmons Group images found using filtering criteria');
+                    status('No images found using filtering criteria');
                     return;
                 }
                 
-                status(`Loaded ${imageData.length} Timmons Group images for Broussard, LA (Oct 2025)`);
+                status(`Loaded ${imageData.length} images`);
                 addImagesToMap();
                 
-                // Fit map to show all points
                 if (imageData.length > 0) {
                     const coords = imageData
-                        .filter(img => img.geometry && img.geometry.coordinates)
+                        .filter(img => img.geometry?.coordinates)
                         .map(img => img.geometry.coordinates);
                     
                     if (coords.length > 0) {
@@ -531,30 +463,23 @@
                     }
                 }
             } catch (err) {
-                status('Error loading images: ' + err.message);
                 console.error('Error fetching images:', err);
-                showError(`Error loading imagery: ${err.message}. Would you like to try reloading? You can also load Mapillary directly, using the button at the bottom left of the screen.`);
+                showError(`Error loading imagery: ${err.message}`);
             }
         }
 
-        // Add images to map as GeoJSON
         function addImagesToMap() {
             const features = [];
             const sequenceGroups = {};
             
-            // Single pass through data to build both features and sequence groups
             for (const img of imageData) {
-                if (!img.geometry || !img.geometry.coordinates) continue;
+                if (!img.geometry?.coordinates) continue;
                 
                 const coords = img.geometry.coordinates;
                 
-                // Add point feature
                 features.push({
                     type: 'Feature',
-                    geometry: {
-                        type: 'Point',
-                        coordinates: coords
-                    },
+                    geometry: { type: 'Point', coordinates: coords },
                     properties: {
                         id: img.id,
                         compass_angle: img.compass_angle || 0,
@@ -562,7 +487,6 @@
                     }
                 });
                 
-                // Group for sequences
                 if (img.sequence) {
                     if (!sequenceGroups[img.sequence]) {
                         sequenceGroups[img.sequence] = [];
@@ -574,7 +498,6 @@
                 }
             }
 
-            // Create line features from sequences
             const lineFeatures = [];
             for (const [seqId, points] of Object.entries(sequenceGroups)) {
                 if (points.length < 2) continue;
@@ -585,19 +508,11 @@
                 
                 lineFeatures.push({
                     type: 'Feature',
-                    geometry: {
-                        type: 'LineString',
-                        coordinates: points.map(p => p.coords)
-                    },
-                    properties: {
-                        sequence: seqId
-                    }
+                    geometry: { type: 'LineString', coordinates: points.map(p => p.coords) },
+                    properties: { sequence: seqId }
                 });
             }
 
-            console.log(`Adding ${features.length} points and ${lineFeatures.length} lines to map`);
-
-            // Update the sources
             if (map.getSource('images')) {
                 map.getSource('images').setData({
                     type: 'FeatureCollection',
@@ -613,7 +528,6 @@
             }
         }
 
-        // FOV indicator
         function makeArcPath(fovDeg) {
             const r = 45, cx = 50, cy = 50;
             const rad = Math.PI / 180 * fovDeg;
@@ -661,7 +575,6 @@
             rotationAlignment: 'map'
         });
 
-        // Sync viewer position to map
         async function syncPosition() {
             if (isUpdatingFromMap) return;
             
@@ -670,31 +583,22 @@
                 const pos = await viewer.getPosition();
                 const pov = await viewer.getPointOfView();
                 
-                // Update position markers
                 positionMarker.setLngLat([pos.lng, pos.lat]).addTo(map);
                 cameraMarker.setLngLat([pos.lng, pos.lat]).addTo(map);
                 
-                // Update FOV rotation
                 const svg = cameraEl.querySelector('svg');
-                if (svg) {
-                    svg.style.transform = `rotateZ(${pov.bearing}deg)`;
-                }
+                if (svg) svg.style.transform = `rotateZ(${pov.bearing}deg)`;
                 
-                // Update highlighted point
                 if (map.getSource('currentImage')) {
                     map.getSource('currentImage').setData({
                         type: 'FeatureCollection',
                         features: [{
                             type: 'Feature',
-                            geometry: {
-                                type: 'Point',
-                                coordinates: [pos.lng, pos.lat]
-                            }
+                            geometry: { type: 'Point', coordinates: [pos.lng, pos.lat] }
                         }]
                     });
                 }
                 
-                // Only pan if we're not already updating from a map click
                 if (!isUpdatingFromMap) {
                     map.panTo([pos.lng, pos.lat]);
                 }
@@ -706,7 +610,6 @@
             }
         }
 
-        // Update FOV when it changes
         viewer.on('fov', async () => {
             try {
                 const vc = viewer.getContainer();
@@ -714,15 +617,12 @@
                 const aspect = vc.offsetHeight ? vc.offsetWidth / vc.offsetHeight : 0;
                 const hFovDeg = Math.atan(aspect * Math.tan(0.5 * vFov)) * 2 * 180 / Math.PI;
                 const path = cameraEl.querySelector('path');
-                if (path) {
-                    path.setAttribute('d', makeArcPath(hFovDeg));
-                }
+                if (path) path.setAttribute('d', makeArcPath(hFovDeg));
             } catch (err) {
                 console.error('Error updating FOV:', err);
             }
         });
 
-        // Set up viewer event listeners
         viewer.on('load', syncPosition);
         viewer.on('image', syncPosition);
         viewer.on('position', syncPosition);
@@ -732,9 +632,7 @@
             if (viewer.emit) viewer.emit('fov');
         });
 
-        // Initialize when map loads
         map.on('load', () => {
-            // Create empty sources first
             map.addSource('sequences', {
                 type: 'geojson',
                 data: { type: 'FeatureCollection', features: [] }
@@ -786,10 +684,50 @@
                 }
             });
 
-            // Click handler
             map.on('click', 'image-points', async (e) => {
                 if (isUpdatingFromViewer) return;
                 
                 const feature = e.features[0];
                 const imageId = feature.properties.id;
                 const coords = feature.geometry.coordinates;
+                
+                if (imageId) {
+                    isUpdatingFromMap = true;
+                    
+                    if (map.getSource('currentImage')) {
+                        map.getSource('currentImage').setData({
+                            type: 'FeatureCollection',
+                            features: [{
+                                type: 'Feature',
+                                geometry: { type: 'Point', coordinates: coords }
+                            }]
+                        });
+                    }
+                    
+                    positionMarker.setLngLat(coords).addTo(map);
+                    cameraMarker.setLngLat(coords).addTo(map);
+                    map.panTo(coords);
+                    
+                    try {
+                        await viewer.moveTo(String(imageId));
+                        setTimeout(syncPosition, 100);
+                    } catch (err) {
+                        console.error('Error moving to image:', err);
+                    }
+                    setTimeout(() => { isUpdatingFromMap = false; }, 300);
+                }
+            });
+
+            map.on('mouseenter', 'image-points', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'image-points', () => {
+                map.getCanvas().style.cursor = '';
+            });
+
+            fetchAllUserImages();
+        });
+    </script>
+</body>
+</html>
