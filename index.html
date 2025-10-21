@@ -189,18 +189,13 @@
                     <svg id="crosshair-svg" viewBox="0 0 100 100">
                         <!-- FOV wedge -->
                         <path id="fov-wedge-path" d="" fill="#FBBC04" fill-opacity="0.4" stroke="#F57C00" stroke-width="2"/>
-                        <!-- Center dot -->
-                        <circle cx="50" cy="50" r="4" fill="#EA4335" stroke="white" stroke-width="2"/>
-                        <!-- Crosshair lines -->
-                        <line x1="50" y1="35" x2="50" y2="45" stroke="#EA4335" stroke-width="2"/>
-                        <line x1="50" y1="55" x2="50" y2="65" stroke="#EA4335" stroke-width="2"/>
-                        <line x1="35" y1="50" x2="45" y2="50" stroke="#EA4335" stroke-width="2"/>
-                        <line x1="55" y1="50" x2="65" y2="50" stroke="#EA4335" stroke-width="2"/>
+                        <!-- Center position marker (like mini map) -->
+                        <circle cx="50" cy="50" r="6" fill="#EA4335" stroke="white" stroke-width="2"/>
                     </svg>
                 </div>
             </div>
             <button id="sync-btn">📍 Sync to Current Image</button>
-            <button id="toggle-fov-btn">Show FOV Wedge</button>
+            <button id="toggle-fov-btn">👁️ Show FOV over ArcGIS Map</button>
         </div>
     </div>
 
@@ -606,13 +601,13 @@
             if (fovOverlayVisible) {
                 overlay.classList.add('visible');
                 btn.classList.add('active');
-                btn.textContent = 'Hide FOV Wegde';
+                btn.textContent = '👁️ Hide FOV overlay';
                 // Update the overlay immediately
                 updateMiniMapPosition();
             } else {
                 overlay.classList.remove('visible');
                 btn.classList.remove('active');
-                btn.textContent = 'Show FOV Wedge';
+                btn.textContent = '👁️ Show FOV over ArcGIS Map';
             }
         });
 
