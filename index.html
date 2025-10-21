@@ -9,6 +9,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mapillary-js@latest/dist/mapillary.css" />
     <script src="https://cdn.jsdelivr.net/npm/mapillary-js@latest/dist/mapillary.min.js"></script>
     
+    <!-- MapLibre GL -->
+    <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -28,6 +32,17 @@
             width: 50%;
             height: 100%;
             position: relative;
+        }
+        #mini-map {
+            position: absolute;
+            bottom: 60px;
+            right: 10px;
+            width: 300px;
+            height: 200px;
+            border: 3px solid white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 1000;
         }
         #arcgis-container {
             width: 50%;
@@ -101,6 +116,7 @@
     <div id="container">
         <div id="viewer">
             <div id="loading">Loading Mapillary viewer...</div>
+            <div id="mini-map"></div>
             <button id="mapillary-link-btn">
                 <img src="https://play-lh.googleusercontent.com/z3qzEc13E2sDWky9LgqADojcdy8hrX_szuAAeX21k_dFe7GNXLIYXJtOu5RcE3_5Jz8" alt="Mapillary">
                 Open in Mapillary Web
@@ -117,7 +133,12 @@
         const TOKEN = 'MLY|24840280672250420|6fc0e204403850a11ccc043866f1b01d';
         const START_ID = '1347465910083369';
         const USERNAME = 'vukmercd23';
+        const START_DATE = '2025-10-01T00:00:00Z';
+        const END_DATE = '2025-10-16T00:00:00Z';
         
+        let imageData = [];
+        let isUpdatingFromMap = false;
+
         // Initialize Mapillary Viewer
         const viewer = new mapillary.Viewer({
             container: 'viewer',
@@ -131,9 +152,180 @@
             }
         });
 
+        // Initialize mini map
+        const miniMap = new maplibregl.Map({
+            container: 'mini-map',
+            style: {
+                version: 8,
+                sources: {
+                    osm: {
+                        type: 'raster',
+                        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                        tileSize: 256,
+                        attribution: '© OpenStreetMap'
+                    }
+                },
+                layers: [
+                    { id: 'osm', type: 'raster', source: 'osm' }
+                ]
+            },
+            center: [-91.95221806850299, 30.138492112426093],
+            zoom: 12
+        });
+
+        // Fetch user images
+        async function fetchUserImages() {
+            try {
+                let allImages = [];
+                let after = null;
+                const startTime = Date.parse(START_DATE);
+                const endTime = Date.parse(END_DATE);
+                
+                while (true) {
+                    const url = new URL('https://graph.mapillary.com/images');
+                    url.searchParams.set('access_token', TOKEN);
+                    url.searchParams.set('fields', 'id,geometry,sequence,captured_at');
+                    url.searchParams.set('creator_username', USERNAME);
+                    url.searchParams.set('limit', 2000);
+                    if (after) url.searchParams.set('after', after);
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) break;
+                    
+                    const data = await response.json();
+                    const images = data.data || [];
+                    if (images.length === 0) break;
+                    
+                    const filtered = images.filter(img => {
+                        if (!img.captured_at) return false;
+                        let capturedTime = typeof img.captured_at === 'number' ? 
+                            img.captured_at : Date.parse(img.captured_at);
+                        return capturedTime >= startTime && capturedTime < endTime;
+                    });
+                    
+                    allImages = allImages.concat(filtered);
+                    
+                    if (data.paging?.cursors?.after) {
+                        after = data.paging.cursors.after;
+                    } else {
+                        break;
+                    }
+                    
+                    if (allImages.length >= 50000) break;
+                }
+                
+                imageData = allImages;
+                addImagesToMiniMap();
+            } catch (err) {
+                console.error('Error fetching images:', err);
+            }
+        }
+
+        function addImagesToMiniMap() {
+            const features = imageData
+                .filter(img => img.geometry?.coordinates)
+                .map(img => ({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: img.geometry.coordinates },
+                    properties: { id: img.id }
+                }));
+
+            miniMap.on('load', () => {
+                miniMap.addSource('images', {
+                    type: 'geojson',
+                    data: { type: 'FeatureCollection', features }
+                });
+
+                miniMap.addLayer({
+                    id: 'image-points',
+                    type: 'circle',
+                    source: 'images',
+                    paint: {
+                        'circle-color': '#4285F4',
+                        'circle-radius': 3,
+                        'circle-stroke-width': 1,
+                        'circle-stroke-color': '#fff'
+                    }
+                });
+
+                // Current position marker
+                miniMap.addSource('current', {
+                    type: 'geojson',
+                    data: { type: 'FeatureCollection', features: [] }
+                });
+
+                miniMap.addLayer({
+                    id: 'current-point',
+                    type: 'circle',
+                    source: 'current',
+                    paint: {
+                        'circle-color': '#EA4335',
+                        'circle-radius': 6,
+                        'circle-stroke-width': 2,
+                        'circle-stroke-color': '#fff'
+                    }
+                });
+
+                // Click to jump
+                miniMap.on('click', 'image-points', async (e) => {
+                    if (isUpdatingFromMap) return;
+                    const feature = e.features[0];
+                    const imageId = feature.properties.id;
+                    if (imageId) {
+                        isUpdatingFromMap = true;
+                        try {
+                            await viewer.moveTo(String(imageId));
+                        } catch (err) {
+                            console.error('Error moving to image:', err);
+                        }
+                        setTimeout(() => { isUpdatingFromMap = false; }, 300);
+                    }
+                });
+
+                miniMap.on('mouseenter', 'image-points', () => {
+                    miniMap.getCanvas().style.cursor = 'pointer';
+                });
+
+                miniMap.on('mouseleave', 'image-points', () => {
+                    miniMap.getCanvas().style.cursor = '';
+                });
+
+                // Fit to show all images
+                if (features.length > 0) {
+                    const coords = features.map(f => f.geometry.coordinates);
+                    const bounds = coords.reduce((bounds, coord) => {
+                        return bounds.extend(coord);
+                    }, new maplibregl.LngLatBounds(coords[0], coords[0]));
+                    miniMap.fitBounds(bounds, { padding: 20 });
+                }
+            });
+        }
+
+        // Update mini map current position
+        async function updateMiniMapPosition() {
+            if (isUpdatingFromMap) return;
+            try {
+                const pos = await viewer.getPosition();
+                if (miniMap.getSource('current')) {
+                    miniMap.getSource('current').setData({
+                        type: 'FeatureCollection',
+                        features: [{
+                            type: 'Feature',
+                            geometry: { type: 'Point', coordinates: [pos.lng, pos.lat] }
+                        }]
+                    });
+                }
+            } catch (err) {
+                console.error('Error updating mini map:', err);
+            }
+        }
+
         viewer.on('load', () => {
             document.getElementById('loading').style.display = 'none';
+            updateMiniMapPosition();
         });
+        viewer.on('image', updateMiniMapPosition);
+        viewer.on('position', updateMiniMapPosition);
 
         // Open in Mapillary web
         document.getElementById('mapillary-link-btn').addEventListener('click', () => {
@@ -144,15 +336,13 @@
         document.getElementById('sync-btn').addEventListener('click', async () => {
             try {
                 const pos = await viewer.getPosition();
-                const arcgisZoom = 18; // Street level view
+                const arcgisZoom = 18;
                 
-                // Reload iframe with new center coordinates
                 const iframe = document.getElementById('arcgis-map');
                 const baseUrl = 'https://timmons-group.maps.arcgis.com/apps/mapviewer/index.html';
                 const newUrl = `${baseUrl}?webmap=0de90d7988f9470da59918c9b00c5379&center=${pos.lng},${pos.lat}&level=${arcgisZoom}`;
                 iframe.src = newUrl;
                 
-                // Visual feedback
                 const btn = document.getElementById('sync-btn');
                 const originalText = btn.textContent;
                 btn.textContent = '✓ Synced!';
@@ -166,6 +356,9 @@
                 alert('Could not sync position. Please try again.');
             }
         });
+
+        // Load images
+        fetchUserImages();
     </script>
 </body>
 </html>
