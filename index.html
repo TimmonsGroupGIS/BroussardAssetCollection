@@ -348,12 +348,13 @@
         document.getElementById('sync-arcgis-btn').addEventListener('click', async () => {
             try {
                 const pos = await viewer.getPosition();
-                const zoom = map.getZoom(); // Use current OSM zoom level
+                // Use zoom level 18 for street-level view (approximately 1:5000 scale)
+                const arcgisZoom = 18;
                 
                 // Reload iframe with new center coordinates
                 const iframe = document.getElementById('arcgis-map');
                 const baseUrl = 'https://timmons-group.maps.arcgis.com/apps/mapviewer/index.html';
-                const newUrl = `${baseUrl}?webmap=0de90d7988f9470da59918c9b00c5379&center=${pos.lng},${pos.lat}&level=${Math.round(zoom)}`;
+                const newUrl = `${baseUrl}?webmap=0de90d7988f9470da59918c9b00c5379&center=${pos.lng},${pos.lat}&level=${arcgisZoom}`;
                 iframe.src = newUrl;
                 
                 // Visual feedback
