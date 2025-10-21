@@ -125,6 +125,27 @@
             width: 30px;
             height: 30px;
         }
+        #find-closest-btn {
+            position: absolute;
+            bottom: 60px;
+            left: 10px;
+            background: #FF9800;
+            color: white;
+            font-weight: bold;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: background 0.2s;
+            max-width: 250px;
+            text-align: center;
+        }
+        #find-closest-btn:hover {
+            background: #F57C00;
+        }
     </style>
 </head>
 <body>
@@ -133,6 +154,7 @@
             <div id="loading">Loading Mapillary viewer...</div>
             <div id="mini-map"></div>
             <div id="mini-map-loading">Loading map data...</div>
+            <button id="find-closest-btn">🎯 Find Image Closest to ArcGIS Center</button>
             <button id="mapillary-link-btn">
                 <img src="https://play-lh.googleusercontent.com/z3qzEc13E2sDWky9LgqADojcdy8hrX_szuAAeX21k_dFe7GNXLIYXJtOu5RcE3_5Jz8" alt="Mapillary">
                 Open in Mapillary Web
@@ -286,7 +308,7 @@
                             'circle-color': '#4285F4',
                             'circle-radius': 3,
                             'circle-stroke-width': 1,
-                            'circle-stroke-color': '#fff'
+                            'circle-stroke-color': '#1565C0'
                         }
                     });
 
@@ -305,6 +327,32 @@
                             'circle-radius': 6,
                             'circle-stroke-width': 2,
                             'circle-stroke-color': '#fff'
+                        }
+                    });
+
+                    // FOV wedge layer
+                    miniMap.addSource('fov', {
+                        type: 'geojson',
+                        data: { type: 'FeatureCollection', features: [] }
+                    });
+
+                    miniMap.addLayer({
+                        id: 'fov-wedge',
+                        type: 'fill',
+                        source: 'fov',
+                        paint: {
+                            'fill-color': '#FBBC04',
+                            'fill-opacity': 0.4
+                        }
+                    });
+
+                    miniMap.addLayer({
+                        id: 'fov-outline',
+                        type: 'line',
+                        source: 'fov',
+                        paint: {
+                            'line-color': '#F57C00',
+                            'line-width': 2
                         }
                     });
 
@@ -356,6 +404,9 @@
             if (isUpdatingFromMap) return;
             try {
                 const pos = await viewer.getPosition();
+                const pov = await viewer.getPointOfView();
+                
+                // Update position marker
                 if (miniMap.getSource('current')) {
                     miniMap.getSource('current').setData({
                         type: 'FeatureCollection',
@@ -365,9 +416,51 @@
                         }]
                     });
                 }
+                
+                // Update FOV wedge
+                if (miniMap.getSource('fov')) {
+                    const fovDegrees = 90; // Approximate horizontal FOV
+                    const radius = 0.0002; // Wedge size in degrees (adjust for visibility)
+                    const bearing = pov.bearing;
+                    
+                    // Create wedge polygon
+                    const wedge = createFOVWedge(pos.lng, pos.lat, bearing, fovDegrees, radius);
+                    
+                    miniMap.getSource('fov').setData({
+                        type: 'FeatureCollection',
+                        features: [{
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Polygon',
+                                coordinates: [wedge]
+                            }
+                        }]
+                    });
+                }
             } catch (err) {
                 console.error('Error updating mini map:', err);
             }
+        }
+
+        // Create FOV wedge coordinates
+        function createFOVWedge(lng, lat, bearing, fovDegrees, radius) {
+            const points = [[lng, lat]]; // Start at center
+            const halfFOV = fovDegrees / 2;
+            const numPoints = 20; // Number of points along the arc
+            
+            // Create arc points
+            for (let i = 0; i <= numPoints; i++) {
+                const angle = bearing - halfFOV + (fovDegrees * i / numPoints);
+                const angleRad = angle * Math.PI / 180;
+                
+                const dx = radius * Math.sin(angleRad);
+                const dy = radius * Math.cos(angleRad);
+                
+                points.push([lng + dx, lat + dy]);
+            }
+            
+            points.push([lng, lat]); // Close the wedge
+            return points;
         }
 
         viewer.on('load', () => {
@@ -376,11 +469,124 @@
         });
         viewer.on('image', updateMiniMapPosition);
         viewer.on('position', updateMiniMapPosition);
+        viewer.on('pov', updateMiniMapPosition);
 
         // Open in Mapillary web
         document.getElementById('mapillary-link-btn').addEventListener('click', () => {
             window.open('https://www.mapillary.com/app/user/vukmercd23?lat=30.138492112426093&lng=-91.95221806850299&z=12.85546044226375&dateFrom=2025-10-01&username%5B%5D=vukmercd23&dateTo=2025-10-15&pKey=1347465910083369', '_blank');
         });
+
+        // Find closest image to ArcGIS map center
+        document.getElementById('find-closest-btn').addEventListener('click', () => {
+            try {
+                // Try to get ArcGIS iframe URL
+                const iframe = document.getElementById('arcgis-map');
+                let arcgisUrl;
+                
+                try {
+                    arcgisUrl = iframe.contentWindow.location.href;
+                } catch (e) {
+                    // Cross-origin restriction - use the src instead
+                    arcgisUrl = iframe.src;
+                }
+                
+                console.log('ArcGIS URL:', arcgisUrl);
+                
+                // Parse center from URL
+                const url = new URL(arcgisUrl);
+                const centerParam = url.searchParams.get('center');
+                
+                let targetLng, targetLat;
+                
+                if (centerParam) {
+                    // Format: "lng,lat"
+                    const parts = centerParam.split(',');
+                    targetLng = parseFloat(parts[0]);
+                    targetLat = parseFloat(parts[1]);
+                    console.log('Parsed center:', targetLng, targetLat);
+                } else {
+                    alert('Could not find center coordinates in ArcGIS map URL. Please sync the ArcGIS map first, or pan to a location and sync.');
+                    return;
+                }
+                
+                if (isNaN(targetLng) || isNaN(targetLat)) {
+                    alert('Invalid coordinates found. Please sync the ArcGIS map first.');
+                    return;
+                }
+                
+                if (imageData.length === 0) {
+                    alert('Image data still loading. Please wait a moment and try again.');
+                    return;
+                }
+                
+                // Find closest image using Haversine distance
+                let closestImage = null;
+                let minDistance = Infinity;
+                
+                for (const img of imageData) {
+                    if (!img.geometry?.coordinates) continue;
+                    
+                    const [lng, lat] = img.geometry.coordinates;
+                    const distance = getDistance(targetLat, targetLng, lat, lng);
+                    
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestImage = img;
+                    }
+                }
+                
+                if (closestImage) {
+                    console.log('Found closest image:', closestImage.id, 'Distance:', minDistance.toFixed(2), 'meters');
+                    
+                    // Jump to the image
+                    viewer.moveTo(String(closestImage.id)).catch(err => {
+                        console.error('Error moving to image:', err);
+                        alert('Could not jump to image. Please try again.');
+                    });
+                    
+                    // Center mini map on the location
+                    if (closestImage.geometry?.coordinates) {
+                        miniMap.flyTo({
+                            center: closestImage.geometry.coordinates,
+                            zoom: 16,
+                            duration: 1000
+                        });
+                    }
+                    
+                    // Visual feedback
+                    const btn = document.getElementById('find-closest-btn');
+                    const originalText = btn.textContent;
+                    btn.textContent = `✓ Found! (${minDistance.toFixed(0)}m away)`;
+                    btn.style.background = '#34A853';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.style.background = '#FF9800';
+                    }, 3000);
+                } else {
+                    alert('No images found near the ArcGIS map center.');
+                }
+                
+            } catch (err) {
+                console.error('Error finding closest image:', err);
+                alert('Error: ' + err.message);
+            }
+        });
+
+        // Calculate distance between two lat/lng points in meters (Haversine formula)
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // Distance in meters
+        }
 
         // Sync ArcGIS map to current viewer position
         document.getElementById('sync-btn').addEventListener('click', async () => {
