@@ -3,15 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapillary Viewer with Map</title>
-    
-    <!-- MapillaryJS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mapillary-js@latest/dist/mapillary.css" />
-    <script src="https://cdn.jsdelivr.net/npm/mapillary-js@latest/dist/mapillary.min.js"></script>
-    
-    <!-- MapLibre GL -->
-    <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
-    <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
+    <title>Mapillary with ArcGIS Map</title>
     
     <style>
         * {
@@ -28,180 +20,24 @@
             width: 100vw;
             height: 100vh;
         }
-        #viewer {
+        #mapillary-frame {
             width: 50%;
             height: 100%;
-            position: relative;
-        }
-        #map-container {
-            width: 50%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        #tabs {
-            display: flex;
-            background: #f0f0f0;
-            border-bottom: 2px solid #ccc;
-        }
-        #tabs button {
-            flex: 1;
-            padding: 12px;
             border: none;
-            background: #f0f0f0;
-            cursor: pointer;
-            font: 14px Arial, sans-serif;
-            font-weight: 500;
-            transition: background 0.2s;
         }
-        #tabs button:hover {
-            background: #e0e0e0;
-        }
-        #tabs button.active {
-            background: #fff;
-            font-weight: bold;
-            border-bottom: 3px solid #4285F4;
-        }
-        .map-pane {
-            flex: 1;
-            position: relative;
-            display: none;
-        }
-        .map-pane.active {
-            display: block;
-        }
-        #map {
-            width: 100%;
+        #arcgis-container {
+            width: 50%;
             height: 100%;
+            position: relative;
         }
         #arcgis-map {
             width: 100%;
             height: 100%;
             border: none;
         }
-        #status {
+        #sync-btn {
             position: absolute;
             top: 10px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 12px 16px;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 1000;
-            font-size: 13px;
-            max-width: 300px;
-        }
-        #progress-container {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 280px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 12px 16px;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 1000;
-            display: none;
-        }
-        #progress-container.visible {
-            display: block;
-        }
-        #progress-label {
-            font-size: 13px;
-            margin-bottom: 8px;
-        }
-        #progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-        #progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4285F4, #34A853);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        #progress-text {
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
-        }
-        #error-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.98);
-            padding: 24px 32px;
-            border-radius: 8px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-            z-index: 2000;
-            display: none;
-            text-align: center;
-            max-width: 400px;
-        }
-        #error-container.visible {
-            display: block;
-        }
-        #error-container h3 {
-            color: #d32f2f;
-            margin-bottom: 12px;
-            font-size: 18px;
-        }
-        #error-container p {
-            color: #666;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        #error-container button {
-            padding: 10px 20px;
-            margin: 5px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-        #reload-btn {
-            background: #4285F4;
-            color: white;
-        }
-        #reload-btn:hover {
-            background: #3367D6;
-        }
-        #mapillary-direct-btn {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background: #E0E0E0;
-            color: #000;
-            font-weight: bold;
-            padding: 10px 16px;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 13px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
-        }
-        #mapillary-direct-btn:hover {
-            background: #D0D0D0;
-        }
-        #mapillary-direct-btn img {
-            width: 35px;
-            height: 35px;
-        }
-        #sync-arcgis-btn {
-            position: absolute;
-            top: 60px;
             right: 10px;
             background: #4285F4;
             color: white;
@@ -213,546 +49,118 @@
             font-size: 14px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             z-index: 1001;
-            display: none;
             transition: background 0.2s;
         }
-        #sync-arcgis-btn:hover {
+        #sync-btn:hover {
             background: #3367D6;
         }
-        #sync-arcgis-btn.visible {
+        #sync-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #status-message {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: none;
+            z-index: 1000;
+        }
+        #status-message.visible {
             display: block;
         }
     </style>
 </head>
 <body>
     <div id="container">
-        <div id="viewer">
-            <div id="status" style="display: none;">Please wait. Loading images from Mapillary API...</div>
-            <div id="progress-container">
-                <div id="progress-label">Please wait. Loading images from Mapillary API...</div>
-                <div id="progress-bar">
-                    <div id="progress-fill"></div>
-                </div>
-                <div id="progress-text">Request 0 of ?</div>
-            </div>
-            <button id="mapillary-direct-btn">
-                <img src="https://play-lh.googleusercontent.com/z3qzEc13E2sDWky9LgqADojcdy8hrX_szuAAeX21k_dFe7GNXLIYXJtOu5RcE3_5Jz8" alt="Mapillary">
-                Open Timmons Broussard Mapillary Data Directly
-            </button>
-        </div>
-        <div id="map-container">
-            <div id="tabs">
-                <button id="tab-osm" class="active">OSM Map</button>
-                <button id="tab-arcgis">ArcGIS Map</button>
-            </div>
-            <div id="pane-osm" class="map-pane active">
-                <div id="map"></div>
-            </div>
-            <div id="pane-arcgis" class="map-pane">
-                <iframe id="arcgis-map" src="about:blank"></iframe>
-                <button id="sync-arcgis-btn">📍 Sync to Current Image Location</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="error-container">
-        <h3>⚠️ Loading Error</h3>
-        <p id="error-message">Mapillary API issue occurred during imagery fetch. Would you like to try reloading?</p>
-        <p><i>You can also open filtered Mapillary data by using the button in the bottom left of the screen.</i></p>
-        <div>
-            <button id="reload-btn">Try Reload</button>
+        <iframe id="mapillary-frame" src="https://www.mapillary.com/app/user/vukmercd23?lat=30.138492112426093&lng=-91.95221806850299&z=12.85546044226375&dateFrom=2025-10-01&username%5B%5D=vukmercd23&dateTo=2025-10-15&pKey=1347465910083369"></iframe>
+        
+        <div id="arcgis-container">
+            <iframe id="arcgis-map" src="https://timmons-group.maps.arcgis.com/apps/mapviewer/index.html?webmap=0de90d7988f9470da59918c9b00c5379"></iframe>
+            <button id="sync-btn">📍 Sync to Mapillary Location</button>
+            <div id="status-message">Please navigate in Mapillary, then click sync</div>
         </div>
     </div>
 
     <script>
-        const TOKEN = 'MLY|24840280672250420|6fc0e204403850a11ccc043866f1b01d';
-        const START_ID = '1347465910083369';
-        const USERNAME = 'vukmercd23';
-        const START_DATE = '2025-10-01T00:00:00Z';
-        const END_DATE = '2025-10-16T00:00:00Z';
-        
-        let imageData = [];
-        let isUpdatingFromViewer = false;
-        let isUpdatingFromMap = false;
-        let activeTab = 'osm';
-        
-        const status = (text) => {
-            document.getElementById('status').textContent = text;
-        };
-        
-        const showProgress = (show) => {
-            const container = document.getElementById('progress-container');
-            if (show) {
-                container.classList.add('visible');
-            } else {
-                container.classList.remove('visible');
-            }
-        };
-        
-        const updateProgress = (current, total, filtered) => {
-            const percent = total > 0 ? Math.round((current / total) * 100) : 0;
-            document.getElementById('progress-fill').style.width = percent + '%';
-            document.getElementById('progress-text').textContent = 
-                `Request ${current} of ~${total} | ${filtered} images match Timmons Group Broussard filtering criteria`;
-        };
-        
-        const showError = (message) => {
-            const errorContainer = document.getElementById('error-container');
-            document.getElementById('error-message').textContent = message || 
-                'Mapillary API issue occurred. Would you like to try reloading?';
-            errorContainer.classList.add('visible');
-            showProgress(false);
-        };
-        
-        const hideError = () => {
-            document.getElementById('error-container').classList.remove('visible');
-        };
-        
-        // Tab switching
-        document.getElementById('tab-osm').addEventListener('click', () => switchTab('osm'));
-        document.getElementById('tab-arcgis').addEventListener('click', () => switchTab('arcgis'));
+        const syncBtn = document.getElementById('sync-btn');
+        const statusMessage = document.getElementById('status-message');
+        const arcgisIframe = document.getElementById('arcgis-map');
+        const mapillaryIframe = document.getElementById('mapillary-frame');
 
-        function switchTab(tab) {
-            activeTab = tab;
-            document.querySelectorAll('#tabs button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.map-pane').forEach(pane => pane.classList.remove('active'));
-            
-            if (tab === 'osm') {
-                document.getElementById('tab-osm').classList.add('active');
-                document.getElementById('pane-osm').classList.add('active');
-                document.getElementById('sync-arcgis-btn').classList.remove('visible');
-                map.resize();
-            } else {
-                document.getElementById('tab-arcgis').classList.add('active');
-                document.getElementById('pane-arcgis').classList.add('active');
-                document.getElementById('sync-arcgis-btn').classList.add('visible');
-                // Load iframe on first switch
-                const iframe = document.getElementById('arcgis-map');
-                if (iframe.src === 'about:blank') {
-                    iframe.src = 'https://timmons-group.maps.arcgis.com/apps/mapviewer/index.html?webmap=0de90d7988f9470da59918c9b00c5379';
+        // Function to extract coordinates from Mapillary URL
+        function getMapillaryCoordinates() {
+            try {
+                // Try to get the iframe's current URL
+                const mapillaryUrl = mapillaryIframe.contentWindow.location.href;
+                const url = new URL(mapillaryUrl);
+                
+                // Extract lat and lng from URL parameters
+                const lat = url.searchParams.get('lat');
+                const lng = url.searchParams.get('lng');
+                
+                if (lat && lng) {
+                    return { lat: parseFloat(lat), lng: parseFloat(lng) };
                 }
+                return null;
+            } catch (err) {
+                // Cross-origin restrictions prevent accessing iframe URL
+                console.log('Cannot access Mapillary iframe URL due to cross-origin restrictions');
+                return null;
             }
         }
-        
-        // Button handlers
-        document.getElementById('reload-btn').addEventListener('click', () => {
-            hideError();
-            location.reload();
-        });
-        
-        document.getElementById('mapillary-direct-btn').addEventListener('click', () => {
-            window.open('https://www.mapillary.com/app/user/vukmercd23?lat=30.138492112426093&lng=-91.95221806850299&z=12.85546044226375&dateFrom=2025-10-01&username%5B%5D=vukmercd23&dateTo=2025-10-15&pKey=1347465910083369', '_blank');
-        });
 
-        // Sync ArcGIS map to current viewer position
-        document.getElementById('sync-arcgis-btn').addEventListener('click', async () => {
-            try {
-                const pos = await viewer.getPosition();
-                // Use zoom level 18 for street-level view (approximately 1:5000 scale)
-                const arcgisZoom = 18;
-                
-                // Reload iframe with new center coordinates
-                const iframe = document.getElementById('arcgis-map');
+        // Sync button click handler
+        syncBtn.addEventListener('click', () => {
+            const coords = getMapillaryCoordinates();
+            
+            if (coords) {
+                // Update ArcGIS map with coordinates
+                const arcgisZoom = 18; // Street level view
                 const baseUrl = 'https://timmons-group.maps.arcgis.com/apps/mapviewer/index.html';
-                const newUrl = `${baseUrl}?webmap=0de90d7988f9470da59918c9b00c5379&center=${pos.lng},${pos.lat}&level=${arcgisZoom}`;
-                iframe.src = newUrl;
+                const newUrl = `${baseUrl}?webmap=0de90d7988f9470da59918c9b00c5379&center=${coords.lng},${coords.lat}&level=${arcgisZoom}`;
+                arcgisIframe.src = newUrl;
                 
                 // Visual feedback
-                const btn = document.getElementById('sync-arcgis-btn');
-                const originalText = btn.textContent;
-                btn.textContent = '✓ Synced!';
-                btn.style.background = '#34A853';
+                syncBtn.textContent = '✓ Synced!';
+                syncBtn.style.background = '#34A853';
                 setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.style.background = '#4285F4';
+                    syncBtn.textContent = '📍 Sync to Mapillary Location';
+                    syncBtn.style.background = '#4285F4';
                 }, 2000);
-            } catch (err) {
-                console.error('Error syncing to ArcGIS:', err);
-                alert('Could not sync position. Please try again.');
+                
+                showStatus(`Synced to ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+            } else {
+                // Fallback: Use default coordinates from the initial Mapillary URL
+                showStatus('Using default location - navigate in Mapillary and try again', true);
+                
+                // Use the initial coordinates as fallback
+                const defaultLat = 30.138492112426093;
+                const defaultLng = -91.95221806850299;
+                const arcgisZoom = 18;
+                const baseUrl = 'https://timmons-group.maps.arcgis.com/apps/mapviewer/index.html';
+                const newUrl = `${baseUrl}?webmap=0de90d7988f9470da59918c9b00c5379&center=${defaultLng},${defaultLat}&level=${arcgisZoom}`;
+                arcgisIframe.src = newUrl;
             }
         });
 
-        // Initialize Mapillary Viewer
-        const viewer = new mapillary.Viewer({
-            container: 'viewer',
-            accessToken: TOKEN,
-            imageId: START_ID,
-            component: {
-                cover: false,
-                sequence: true,
-                direction: true,
-                zoom: true
-            }
-        });
-
-        // Initialize MapLibre map
-        const map = new maplibregl.Map({
-            container: 'map',
-            style: {
-                version: 8,
-                sources: {
-                    osm: {
-                        type: 'raster',
-                        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                        tileSize: 256,
-                        attribution: '© OpenStreetMap contributors'
-                    }
-                },
-                layers: [
-                    { id: 'osm', type: 'raster', source: 'osm' }
-                ]
-            },
-            center: [0, 0],
-            zoom: 2
-        });
-
-        // Fetch images
-        async function fetchAllUserImages() {
-            try {
-                status('Loading all images...');
-                showProgress(true);
-                
-                let allImages = [];
-                let after = null;
-                let requestCount = 0;
-                let totalFetched = 0;
-                const startTime = Date.parse(START_DATE);
-                const endTime = Date.parse(END_DATE);
-                const estimatedTotal = 30;
-                
-                while (true) {
-                    const url = new URL('https://graph.mapillary.com/images');
-                    url.searchParams.set('access_token', TOKEN);
-                    url.searchParams.set('fields', 'id,geometry,compass_angle,sequence,captured_at');
-                    url.searchParams.set('creator_username', USERNAME);
-                    url.searchParams.set('limit', 2000);
-                    if (after) url.searchParams.set('after', after);
-                    
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error(`HTTP ${response.status}: ${errorText}`);
-                        showError(`API Error (${response.status}): Failed to load imagery data.`);
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    const images = data.data || [];
-                    
-                    requestCount++;
-                    totalFetched += images.length;
-                    
-                    if (images.length === 0) break;
-                    
-                    const filtered = images.filter(img => {
-                        if (!img.captured_at) return false;
-                        let capturedTime = typeof img.captured_at === 'number' ? 
-                            img.captured_at : Date.parse(img.captured_at);
-                        return capturedTime >= startTime && capturedTime < endTime;
-                    });
-                    
-                    allImages = allImages.concat(filtered);
-                    updateProgress(requestCount, estimatedTotal, allImages.length);
-                    
-                    if (data.paging?.cursors?.after) {
-                        after = data.paging.cursors.after;
-                    } else {
-                        break;
-                    }
-                    
-                    if (requestCount >= 50 || allImages.length >= 59477) break;
-                }
-                
-                showProgress(false);
-                imageData = allImages;
-                
-                if (imageData.length === 0) {
-                    status('No images found using filtering criteria');
-                    return;
-                }
-                
-                status(`Loaded ${imageData.length} images`);
-                addImagesToMap();
-                
-                if (imageData.length > 0) {
-                    const coords = imageData
-                        .filter(img => img.geometry?.coordinates)
-                        .map(img => img.geometry.coordinates);
-                    
-                    if (coords.length > 0) {
-                        const bounds = coords.reduce((bounds, coord) => {
-                            return bounds.extend(coord);
-                        }, new maplibregl.LngLatBounds(coords[0], coords[0]));
-                        
-                        map.fitBounds(bounds, { padding: 50 });
-                    }
-                }
-            } catch (err) {
-                console.error('Error fetching images:', err);
-                showError(`Error loading imagery: ${err.message}`);
-            }
+        function showStatus(message, isWarning = false) {
+            statusMessage.textContent = message;
+            statusMessage.style.background = isWarning ? 'rgba(255, 152, 0, 0.9)' : 'rgba(52, 168, 83, 0.9)';
+            statusMessage.classList.add('visible');
+            setTimeout(() => {
+                statusMessage.classList.remove('visible');
+            }, 3000);
         }
 
-        function addImagesToMap() {
-            const features = [];
-            const sequenceGroups = {};
-            
-            for (const img of imageData) {
-                if (!img.geometry?.coordinates) continue;
-                
-                const coords = img.geometry.coordinates;
-                
-                features.push({
-                    type: 'Feature',
-                    geometry: { type: 'Point', coordinates: coords },
-                    properties: {
-                        id: img.id,
-                        compass_angle: img.compass_angle || 0,
-                        sequence: img.sequence || null
-                    }
-                });
-                
-                if (img.sequence) {
-                    if (!sequenceGroups[img.sequence]) {
-                        sequenceGroups[img.sequence] = [];
-                    }
-                    sequenceGroups[img.sequence].push({
-                        coords: coords,
-                        captured_at: img.captured_at
-                    });
-                }
-            }
-
-            const lineFeatures = [];
-            for (const [seqId, points] of Object.entries(sequenceGroups)) {
-                if (points.length < 2) continue;
-                
-                if (points[0].captured_at) {
-                    points.sort((a, b) => new Date(a.captured_at) - new Date(b.captured_at));
-                }
-                
-                lineFeatures.push({
-                    type: 'Feature',
-                    geometry: { type: 'LineString', coordinates: points.map(p => p.coords) },
-                    properties: { sequence: seqId }
-                });
-            }
-
-            if (map.getSource('images')) {
-                map.getSource('images').setData({
-                    type: 'FeatureCollection',
-                    features: features
-                });
-            }
-            
-            if (map.getSource('sequences')) {
-                map.getSource('sequences').setData({
-                    type: 'FeatureCollection',
-                    features: lineFeatures
-                });
-            }
-        }
-
-        function makeArcPath(fovDeg) {
-            const r = 45, cx = 50, cy = 50;
-            const rad = Math.PI / 180 * fovDeg;
-            const a0 = -Math.PI / 2 - rad / 2;
-            const a1 = a0 + rad;
-            const x0 = cx + r * Math.cos(a0);
-            const y0 = cy + r * Math.sin(a0);
-            const x1 = cx + r * Math.cos(a1);
-            const y1 = cy + r * Math.sin(a1);
-            return `M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 0 1 ${x1} ${y1} Z`;
-        }
-
-        function makeCamera(bearingDeg, fovDeg) {
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', makeArcPath(fovDeg));
-            path.setAttribute('fill', '#4285F4');
-            path.setAttribute('fill-opacity', '0.5');
-            path.setAttribute('stroke', 'white');
-            path.setAttribute('stroke-width', '2');
-            
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.setAttribute('viewBox', '0 0 100 100');
-            svg.appendChild(path);
-            svg.style.height = '100%';
-            svg.style.width = '100%';
-            svg.style.transform = `rotateZ(${bearingDeg}deg)`;
-            
-            const el = document.createElement('div');
-            el.style.height = '80px';
-            el.style.width = '80px';
-            el.appendChild(svg);
-            return el;
-        }
-
-        const cameraEl = makeCamera(0, 90);
-        const cameraMarker = new maplibregl.Marker({
-            element: cameraEl,
-            rotationAlignment: 'map'
-        });
-
-        const posDot = document.createElement('div');
-        posDot.style.cssText = 'width:14px;height:14px;border:3px solid #EA4335;border-radius:50%;background:#fff;';
-        const positionMarker = new maplibregl.Marker({
-            element: posDot,
-            rotationAlignment: 'map'
-        });
-
-        async function syncPosition() {
-            if (isUpdatingFromMap) return;
-            
-            try {
-                isUpdatingFromViewer = true;
-                const pos = await viewer.getPosition();
-                const pov = await viewer.getPointOfView();
-                
-                positionMarker.setLngLat([pos.lng, pos.lat]).addTo(map);
-                cameraMarker.setLngLat([pos.lng, pos.lat]).addTo(map);
-                
-                const svg = cameraEl.querySelector('svg');
-                if (svg) svg.style.transform = `rotateZ(${pov.bearing}deg)`;
-                
-                if (map.getSource('currentImage')) {
-                    map.getSource('currentImage').setData({
-                        type: 'FeatureCollection',
-                        features: [{
-                            type: 'Feature',
-                            geometry: { type: 'Point', coordinates: [pos.lng, pos.lat] }
-                        }]
-                    });
-                }
-                
-                if (!isUpdatingFromMap) {
-                    map.panTo([pos.lng, pos.lat]);
-                }
-                
-                setTimeout(() => { isUpdatingFromViewer = false; }, 200);
-            } catch (err) {
-                console.error('Error syncing position:', err);
-                isUpdatingFromViewer = false;
-            }
-        }
-
-        viewer.on('fov', async () => {
-            try {
-                const vc = viewer.getContainer();
-                const vFov = Math.PI / 180 * (await viewer.getFieldOfView());
-                const aspect = vc.offsetHeight ? vc.offsetWidth / vc.offsetHeight : 0;
-                const hFovDeg = Math.atan(aspect * Math.tan(0.5 * vFov)) * 2 * 180 / Math.PI;
-                const path = cameraEl.querySelector('path');
-                if (path) path.setAttribute('d', makeArcPath(hFovDeg));
-            } catch (err) {
-                console.error('Error updating FOV:', err);
-            }
-        });
-
-        viewer.on('load', syncPosition);
-        viewer.on('image', syncPosition);
-        viewer.on('position', syncPosition);
-        viewer.on('pov', syncPosition);
-
-        window.addEventListener('resize', () => {
-            if (viewer.emit) viewer.emit('fov');
-        });
-
-        map.on('load', () => {
-            map.addSource('sequences', {
-                type: 'geojson',
-                data: { type: 'FeatureCollection', features: [] }
-            });
-
-            map.addLayer({
-                id: 'sequence-lines',
-                type: 'line',
-                source: 'sequences',
-                paint: {
-                    'line-color': '#4285F4',
-                    'line-width': 2,
-                    'line-opacity': 0.6
-                }
-            });
-
-            map.addSource('images', {
-                type: 'geojson',
-                data: { type: 'FeatureCollection', features: [] }
-            });
-
-            map.addLayer({
-                id: 'image-points',
-                type: 'circle',
-                source: 'images',
-                paint: {
-                    'circle-color': '#4285F4',
-                    'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 3, 18, 8],
-                    'circle-stroke-width': 2,
-                    'circle-stroke-color': '#1976D2',
-                    'circle-opacity': 0.8
-                }
-            });
-
-            map.addSource('currentImage', {
-                type: 'geojson',
-                data: { type: 'FeatureCollection', features: [] }
-            });
-            
-            map.addLayer({
-                id: 'current-image',
-                type: 'circle',
-                source: 'currentImage',
-                paint: {
-                    'circle-color': '#EA4335',
-                    'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 5, 18, 12],
-                    'circle-stroke-width': 3,
-                    'circle-stroke-color': '#fff'
-                }
-            });
-
-            map.on('click', 'image-points', async (e) => {
-                if (isUpdatingFromViewer) return;
-                
-                const feature = e.features[0];
-                const imageId = feature.properties.id;
-                const coords = feature.geometry.coordinates;
-                
-                if (imageId) {
-                    isUpdatingFromMap = true;
-                    
-                    if (map.getSource('currentImage')) {
-                        map.getSource('currentImage').setData({
-                            type: 'FeatureCollection',
-                            features: [{
-                                type: 'Feature',
-                                geometry: { type: 'Point', coordinates: coords }
-                            }]
-                        });
-                    }
-                    
-                    positionMarker.setLngLat(coords).addTo(map);
-                    cameraMarker.setLngLat(coords).addTo(map);
-                    map.panTo(coords);
-                    
-                    try {
-                        await viewer.moveTo(String(imageId));
-                        setTimeout(syncPosition, 100);
-                    } catch (err) {
-                        console.error('Error moving to image:', err);
-                    }
-                    setTimeout(() => { isUpdatingFromMap = false; }, 300);
-                }
-            });
-
-            map.on('mouseenter', 'image-points', () => {
-                map.getCanvas().style.cursor = 'pointer';
-            });
-
-            map.on('mouseleave', 'image-points', () => {
-                map.getCanvas().style.cursor = '';
-            });
-
-            fetchAllUserImages();
-        });
+        // Show initial help message
+        setTimeout(() => {
+            showStatus('Click the sync button to center ArcGIS on Mapillary location', false);
+        }, 1000);
     </script>
 </body>
 </html>
