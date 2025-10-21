@@ -199,6 +199,29 @@
             width: 35px;
             height: 35px;
         }
+        #sync-arcgis-btn {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: #4285F4;
+            color: white;
+            font-weight: bold;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 1001;
+            display: none;
+            transition: background 0.2s;
+        }
+        #sync-arcgis-btn:hover {
+            background: #3367D6;
+        }
+        #sync-arcgis-btn.visible {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -227,6 +250,7 @@
             </div>
             <div id="pane-arcgis" class="map-pane">
                 <iframe id="arcgis-map" src="about:blank"></iframe>
+                <button id="sync-arcgis-btn">📍 Sync to Current Image Location</button>
             </div>
         </div>
     </div>
@@ -296,10 +320,12 @@
             if (tab === 'osm') {
                 document.getElementById('tab-osm').classList.add('active');
                 document.getElementById('pane-osm').classList.add('active');
+                document.getElementById('sync-arcgis-btn').classList.remove('visible');
                 map.resize();
             } else {
                 document.getElementById('tab-arcgis').classList.add('active');
                 document.getElementById('pane-arcgis').classList.add('active');
+                document.getElementById('sync-arcgis-btn').classList.add('visible');
                 // Load iframe on first switch
                 const iframe = document.getElementById('arcgis-map');
                 if (iframe.src === 'about:blank') {
@@ -316,6 +342,33 @@
         
         document.getElementById('mapillary-direct-btn').addEventListener('click', () => {
             window.open('https://www.mapillary.com/app/user/vukmercd23?lat=30.138492112426093&lng=-91.95221806850299&z=12.85546044226375&dateFrom=2025-10-01&username%5B%5D=vukmercd23&dateTo=2025-10-15&pKey=1347465910083369', '_blank');
+        });
+
+        // Sync ArcGIS map to current viewer position
+        document.getElementById('sync-arcgis-btn').addEventListener('click', async () => {
+            try {
+                const pos = await viewer.getPosition();
+                const zoom = map.getZoom(); // Use current OSM zoom level
+                
+                // Reload iframe with new center coordinates
+                const iframe = document.getElementById('arcgis-map');
+                const baseUrl = 'https://timmons-group.maps.arcgis.com/apps/mapviewer/index.html';
+                const newUrl = `${baseUrl}?webmap=0de90d7988f9470da59918c9b00c5379&center=${pos.lng},${pos.lat}&level=${Math.round(zoom)}`;
+                iframe.src = newUrl;
+                
+                // Visual feedback
+                const btn = document.getElementById('sync-arcgis-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Synced!';
+                btn.style.background = '#34A853';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#4285F4';
+                }, 2000);
+            } catch (err) {
+                console.error('Error syncing to ArcGIS:', err);
+                alert('Could not sync position. Please try again.');
+            }
         });
 
         // Initialize Mapillary Viewer
