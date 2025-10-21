@@ -200,6 +200,7 @@
                 </div>
             </div>
             <button id="sync-btn">📍 Sync to Current Image</button>
+            <button id="toggle-fov-btn">Show Imagery FOV</button>
         </div>
     </div>
 
@@ -212,6 +213,7 @@
         
         let imageData = [];
         let isUpdatingFromMap = false;
+        let fovOverlayVisible = false;
 
         // Initialize Mapillary Viewer
         const viewer = new mapillary.Viewer({
@@ -482,6 +484,9 @@
 
         // Update the FOV wedge on ArcGIS overlay
         function updateArcGISOverlay(bearing) {
+            // Only update if overlay is visible
+            if (!fovOverlayVisible) return;
+            
             const fovDegrees = 90;
             const path = createFOVWedgeSVG(50, 50, bearing, fovDegrees, 40);
             document.getElementById('fov-wedge-path').setAttribute('d', path);
@@ -589,6 +594,25 @@
             } catch (err) {
                 console.error('Error syncing to ArcGIS:', err);
                 alert('Could not sync position. Please try again.');
+            }
+        });
+
+        // Toggle FOV overlay on ArcGIS map
+        document.getElementById('toggle-fov-btn').addEventListener('click', () => {
+            fovOverlayVisible = !fovOverlayVisible;
+            const overlay = document.getElementById('arcgis-overlay');
+            const btn = document.getElementById('toggle-fov-btn');
+            
+            if (fovOverlayVisible) {
+                overlay.classList.add('visible');
+                btn.classList.add('active');
+                btn.textContent = '👁️ Hide FOV overlay';
+                // Update the overlay immediately
+                updateMiniMapPosition();
+            } else {
+                overlay.classList.remove('visible');
+                btn.classList.remove('active');
+                btn.textContent = '👁️ Show FOV over ArcGIS Map';
             }
         });
 
