@@ -200,7 +200,7 @@
                 </div>
             </div>
             <button id="sync-btn">📍 Sync to Current Image</button>
-            <button id="toggle-fov-btn">Show Imagery FOV</button>
+            <button id="toggle-fov-btn">Show FOV Wedge</button>
         </div>
     </div>
 
@@ -606,13 +606,13 @@
             if (fovOverlayVisible) {
                 overlay.classList.add('visible');
                 btn.classList.add('active');
-                btn.textContent = '👁️ Hide FOV overlay';
+                btn.textContent = 'Hide FOV Wegde';
                 // Update the overlay immediately
                 updateMiniMapPosition();
             } else {
                 overlay.classList.remove('visible');
                 btn.classList.remove('active');
-                btn.textContent = '👁️ Show FOV over ArcGIS Map';
+                btn.textContent = 'Show FOV Wedge';
             }
         });
 
