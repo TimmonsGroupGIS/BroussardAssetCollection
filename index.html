@@ -601,13 +601,13 @@
             if (fovOverlayVisible) {
                 overlay.classList.add('visible');
                 btn.classList.add('active');
-                btn.textContent = '👁️ Hide FOV overlay';
+                btn.textContent = 'Hide FOV';
                 // Update the overlay immediately
                 updateMiniMapPosition();
             } else {
                 overlay.classList.remove('visible');
                 btn.classList.remove('active');
-                btn.textContent = '👁️ Show FOV over ArcGIS Map';
+                btn.textContent = 'Show FOV';
             }
         });
 
