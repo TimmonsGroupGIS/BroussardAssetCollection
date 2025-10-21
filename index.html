@@ -62,6 +62,10 @@
             height: 100%;
             pointer-events: none;
             z-index: 10;
+            display: none;
+        }
+        #arcgis-overlay.visible {
+            display: block;
         }
         #crosshair-container {
             position: absolute;
@@ -94,6 +98,28 @@
         }
         #sync-btn:hover {
             background: #3367D6;
+        }
+        #toggle-fov-btn {
+            position: absolute;
+            top: 58px;
+            right: 10px;
+            background: #FF9800;
+            color: white;
+            font-weight: bold;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 1001;
+            transition: background 0.2s;
+        }
+        #toggle-fov-btn:hover {
+            background: #F57C00;
+        }
+        #toggle-fov-btn.active {
+            background: #F57C00;
         }
         #loading {
             position: absolute;
@@ -187,9 +213,7 @@
             <div id="arcgis-overlay">
                 <div id="crosshair-container">
                     <svg id="crosshair-svg" viewBox="0 0 100 100">
-                        <!-- FOV wedge -->
                         <path id="fov-wedge-path" d="" fill="#FBBC04" fill-opacity="0.4" stroke="#F57C00" stroke-width="2"/>
-                        <!-- Center position marker (like mini map) -->
                         <circle cx="50" cy="50" r="6" fill="#EA4335" stroke="white" stroke-width="2"/>
                     </svg>
                 </div>
@@ -345,7 +369,6 @@
                         }
                     });
 
-                    // Current position marker
                     miniMap.addSource('current', {
                         type: 'geojson',
                         data: { type: 'FeatureCollection', features: [] }
@@ -363,7 +386,6 @@
                         }
                     });
 
-                    // FOV wedge layer
                     miniMap.addSource('fov', {
                         type: 'geojson',
                         data: { type: 'FeatureCollection', features: [] }
@@ -389,7 +411,6 @@
                         }
                     });
 
-                    // Click to jump
                     miniMap.on('click', 'image-points', async (e) => {
                         if (isUpdatingFromMap) return;
                         const feature = e.features[0];
@@ -414,7 +435,6 @@
                     });
                 }
 
-                // Fit to show all images
                 if (features.length > 0) {
                     const coords = features.map(f => f.geometry.coordinates);
                     const bounds = coords.reduce((bounds, coord) => {
@@ -432,14 +452,12 @@
             }
         }
 
-        // Update mini map current position
         async function updateMiniMapPosition() {
             if (isUpdatingFromMap) return;
             try {
                 const pos = await viewer.getPosition();
                 const pov = await viewer.getPointOfView();
                 
-                // Update position marker
                 if (miniMap.getSource('current')) {
                     miniMap.getSource('current').setData({
                         type: 'FeatureCollection',
@@ -450,7 +468,6 @@
                     });
                 }
                 
-                // Update FOV wedge on mini map
                 if (miniMap.getSource('fov')) {
                     const fovDegrees = 90;
                     const radius = 0.0002;
@@ -470,16 +487,13 @@
                     });
                 }
                 
-                // Update FOV wedge on ArcGIS overlay
                 updateArcGISOverlay(pov.bearing);
             } catch (err) {
                 console.error('Error updating mini map:', err);
             }
         }
 
-        // Update the FOV wedge on ArcGIS overlay
         function updateArcGISOverlay(bearing) {
-            // Only update if overlay is visible
             if (!fovOverlayVisible) return;
             
             const fovDegrees = 90;
@@ -487,7 +501,6 @@
             document.getElementById('fov-wedge-path').setAttribute('d', path);
         }
 
-        // Create FOV wedge path for SVG
         function createFOVWedgeSVG(cx, cy, bearing, fovDegrees, radius) {
             const halfFOV = fovDegrees / 2;
             const numPoints = 20;
@@ -508,13 +521,11 @@
             return path;
         }
 
-        // Create FOV wedge coordinates
         function createFOVWedge(lng, lat, bearing, fovDegrees, radius) {
-            const points = [[lng, lat]]; // Start at center
+            const points = [[lng, lat]];
             const halfFOV = fovDegrees / 2;
-            const numPoints = 20; // Number of points along the arc
+            const numPoints = 20;
             
-            // Create arc points
             for (let i = 0; i <= numPoints; i++) {
                 const angle = bearing - halfFOV + (fovDegrees * i / numPoints);
                 const angleRad = angle * Math.PI / 180;
@@ -525,7 +536,7 @@
                 points.push([lng + dx, lat + dy]);
             }
             
-            points.push([lng, lat]); // Close the wedge
+            points.push([lng, lat]);
             return points;
         }
 
@@ -537,18 +548,15 @@
         viewer.on('position', updateMiniMapPosition);
         viewer.on('pov', updateMiniMapPosition);
 
-        // Open in Mapillary web
         document.getElementById('mapillary-link-btn').addEventListener('click', () => {
             window.open('https://www.mapillary.com/app/user/vukmercd23?lat=30.138492112426093&lng=-91.95221806850299&z=12.85546044226375&dateFrom=2025-10-01&username%5B%5D=vukmercd23&dateTo=2025-10-15&pKey=1347465910083369', '_blank');
         });
 
-        // Reload mini map data
         document.getElementById('reload-minimap-btn').addEventListener('click', () => {
             const btn = document.getElementById('reload-minimap-btn');
             btn.disabled = true;
             btn.textContent = '⏳ Loading...';
             
-            // Clear existing data
             imageData = [];
             if (miniMap.getSource('images')) {
                 miniMap.getSource('images').setData({
@@ -557,7 +565,6 @@
                 });
             }
             
-            // Reload
             fetchUserImages().then(() => {
                 btn.disabled = false;
                 btn.textContent = '🔄 Reload';
@@ -567,7 +574,6 @@
             });
         });
 
-        // Sync ArcGIS map to current viewer position
         document.getElementById('sync-btn').addEventListener('click', async () => {
             try {
                 const pos = await viewer.getPosition();
@@ -592,7 +598,6 @@
             }
         });
 
-        // Toggle FOV overlay on ArcGIS map
         document.getElementById('toggle-fov-btn').addEventListener('click', () => {
             fovOverlayVisible = !fovOverlayVisible;
             const overlay = document.getElementById('arcgis-overlay');
@@ -601,17 +606,15 @@
             if (fovOverlayVisible) {
                 overlay.classList.add('visible');
                 btn.classList.add('active');
-                btn.textContent = 'Hide FOV';
-                // Update the overlay immediately
+                btn.textContent = '👁️ Hide FOV Overlay';
                 updateMiniMapPosition();
             } else {
                 overlay.classList.remove('visible');
                 btn.classList.remove('active');
-                btn.textContent = 'Show FOV';
+                btn.textContent = '👁️ Show FOV over ArcGIS Map';
             }
         });
 
-        // Load images
         fetchUserImages();
     </script>
 </body>
