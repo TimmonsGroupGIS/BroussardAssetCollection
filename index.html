@@ -29,7 +29,7 @@
             height: 100vh;
         }
         #viewer {
-            width: 50%;
+            width: 40%;
             height: 100%;
             position: relative;
         }
@@ -45,7 +45,7 @@
             z-index: 1000;
         }
         #arcgis-container {
-            width: 50%;
+            width: 60%;
             height: 100%;
             position: relative;
         }
@@ -580,7 +580,7 @@
                 const arcgisZoom = 18;
                 
                 const iframe = document.getElementById('arcgis-map');
-                const baseUrl = 'https://timmons-group.maps.arcgis.com/apps/mapviewer/index.html';
+                const baseUrl = 'https://timmons-group.maps.arcgis.com/apps/webeditor/index.html';
                 const newUrl = `${baseUrl}?webmap=0de90d7988f9470da59918c9b00c5379&center=${pos.lng},${pos.lat}&level=${arcgisZoom}`;
                 iframe.src = newUrl;
                 
